@@ -1,0 +1,77 @@
+{
+  "enabled": {
+    "description": "启用消息防抖",
+    "type": "bool",
+    "default": true
+  },
+  "merge_images": {
+    "description": "让图片参与合并",
+    "hint": "关掉就退回纯文本合并：带图的消息会被当成独立一条，图配字还是分两次回",
+    "type": "bool",
+    "default": true
+  },
+  "image_debounce_ms": {
+    "description": "图片缓冲窗口（毫秒）",
+    "hint": "消息里带图时多等这么久再交给模型，留给用户把配的文字打出来。设 0 = 不等，但容易出现「图先回一次、字再回一次」",
+    "type": "int",
+    "default": 1000
+  },
+  "debounce_ms": {
+    "description": "纯文本静默窗口（毫秒）",
+    "hint": "纯文字消息的等待时间。0 = 首条立刻进模型（后续消息到了再合并重生成，也就是「零等待」）；设 300~800 会等用户打完再一次性发，代价是回复变慢",
+    "type": "int",
+    "default": 0
+  },
+  "max_messages": {
+    "description": "一次最多合并几条",
+    "hint": "0 = 不限。超出就另起一轮，前面的照常回",
+    "type": "int",
+    "default": 8
+  },
+  "max_images": {
+    "description": "一次最多合并几张图",
+    "hint": "0 = 不限。主流视觉模型一般支持 9~20 张，给太多会被接口拒",
+    "type": "int",
+    "default": 9
+  },
+  "max_chars": {
+    "description": "合并文本字符上限",
+    "hint": "0 = 不限。只限制被合并的历史部分，不会截断最新那条",
+    "type": "int",
+    "default": 4000
+  },
+  "image_only_prompt": {
+    "description": "只发图不打字时的引导语",
+    "hint": "用户一句话没说只甩了几张图，就用这句当提示词，免得空 prompt 让模型不知道说啥",
+    "type": "string",
+    "default": "看看这个"
+  },
+  "ignore_prefixes_enabled": {
+    "description": "命令前缀不合并",
+    "hint": "以这些前缀开头的消息直接放行，不卷进防抖，免得把指令拼成一坨",
+    "type": "bool",
+    "default": true
+  },
+  "ignore_prefixes": {
+    "description": "忽略前缀列表",
+    "type": "list",
+    "items": {
+      "type": "string"
+    },
+    "default": ["/", "!"]
+  },
+  "required_prefixes_enabled": {
+    "description": "群聊只合并唤醒消息",
+    "hint": "开启后群里只合并「以指定前缀开头」或「@ 了机器人」的消息。私聊不受影响",
+    "type": "bool",
+    "default": false
+  },
+  "required_prefixes": {
+    "description": "群聊允许合并的前缀",
+    "type": "list",
+    "items": {
+      "type": "string"
+    },
+    "default": []
+  }
+}

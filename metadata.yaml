@@ -1,0 +1,8 @@
+name: astrbot_plugin_sugar_debounce
+display_name: "蔗糖的消息防抖~"
+short_desc: 图文混发只回一次
+desc: 把用户没说完的话攒在一起再回。文本零等待，图片单独给一段缓冲窗口；连发的图片、图片配文字、图+图+字都会并成同一条消息交给模型，不再出现"发张图回一次、再打字又回一次"
+version: 1.0.0
+author: SucRoseZT
+repo: local
+astrbot_version: ">=4.25,<5"

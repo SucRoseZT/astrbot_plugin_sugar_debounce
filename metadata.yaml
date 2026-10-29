@@ -7,4 +7,7 @@ author: SucRoseZT
 repo: https://github.com/SucRoseZT/astrbot_plugin_sugar_debounce
 astrbot_version: ">=4.25,<5"
 tags:
-  - astrbot
+  - debounce
+  - message
+  - merge
+  - chat

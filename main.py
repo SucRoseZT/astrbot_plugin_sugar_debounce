@@ -156,6 +156,14 @@ class SugarDebouncePlugin(Star):
             return
         text = self._real_text(self._message_text(event))
         components = self._components(event)
+        # 引用回复默认参与合并：引用降级成文字说明，被引用的图片抽出来
+        # 一起交给模型（原引用链会被 _apply_merged 覆盖，不抽就丢了）。
+        # 关掉就整条放行——但放行消息撞上活跃会话会被核心 follow-up 抢走单独回。
+        reply_note = ""
+        if self._merge_replies():
+            components, reply_note = self._absorb_replies(components)
+        if reply_note:
+            text = "\n".join(part for part in (reply_note, text) if part)
         key = self._conversation_key(event)
         if not key or not self._mergeable(event, text, components):
             return
@@ -206,7 +214,14 @@ class SugarDebouncePlugin(Star):
                 previous_task = burst.pipeline_task
                 burst.pipeline_task = None
                 if previous_task is not None and not previous_task.done():
+                    # 核心 follow_up 会检查 runner 事件上的这个标记；
+                    # 取消在途请求时打上它，避免刚取消的 run 在 runner
+                    # 尚未注销的竞态窗口里把本条消息抢成 follow-up 单独回。
+                    previous.set_extra("agent_stop_requested", True)
                     previous_task.cancel()
+                logger.info(
+                    f"[{PLUGIN_ID}] 合并第 {len(burst.messages)} 条消息，已重置在途请求"
+                )
 
         burst.messages.append(buffered)
         burst.messages.sort(key=lambda item: item.sequence)
@@ -256,7 +271,10 @@ class SugarDebouncePlugin(Star):
 
     def _must_start_new_burst(self, burst: Burst) -> bool:
         task = burst.pipeline_task
-        if burst.tools_started or (task is not None and task.done()):
+        if task is not None and task.done():
+            return True
+        if burst.tools_started and not self._merge_after_tool_started():
+            # 保守模式：调过 LLM 工具就不合并（可在配置里关掉这个限制）
             return True
         previous = burst.current_event
         if previous is None:
@@ -549,6 +567,45 @@ class SugarDebouncePlugin(Star):
 
     def _merge_images(self) -> bool:
         return bool(self._config_get("merge_images", True))
+
+    def _merge_after_tool_started(self) -> bool:
+        return bool(self._config_get("merge_after_tool", True))
+
+    def _merge_replies(self) -> bool:
+        return bool(self._config_get("merge_reply", True))
+
+    def _absorb_replies(self, components: list[Any]) -> tuple[list[Any], str]:
+        """把 Reply 引用降级成文字说明，被引用的图片抽出来进合并链。"""
+        out: list[Any] = []
+        notes: list[str] = []
+        for component in components:
+            if type(component).__name__ != "Reply":
+                out.append(component)
+                continue
+            sender = str(getattr(component, "sender_nickname", "") or "").strip()
+            sender = sender or "某人"
+            chain = getattr(component, "chain", None)
+            sub_text = ""
+            has_image = False
+            if isinstance(chain, (list, tuple)):
+                for sub in chain:
+                    name = type(sub).__name__
+                    if name == "Plain":
+                        sub_text += str(getattr(sub, "text", "") or "")
+                    elif name == "Image":
+                        out.append(sub)
+                        has_image = True
+            sub_text = sub_text.strip()
+            if len(sub_text) > 80:
+                sub_text = sub_text[:80] + "…"
+            if has_image and sub_text:
+                desc = f"{sub_text}（附图）"
+            elif has_image:
+                desc = "图片"
+            else:
+                desc = sub_text or "内容不可见"
+            notes.append(f"[引用 {sender}：{desc}]")
+        return out, "\n".join(notes)
 
     def _safe_int(self, key: str, default: int, minimum: int) -> int:
         try:

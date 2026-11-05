@@ -10,6 +10,18 @@
     "type": "bool",
     "default": true
   },
+  "merge_after_tool": {
+    "description": "工具调用后仍允许合并",
+    "hint": "开启后，即使上一轮已调用过 LLM 工具（如记忆检索），只要还没发出任何回复，新消息仍会取消在途请求并合并重问；关闭则退回「调过工具就不合并」的保守行为。核心 follow-up 机制会抢消息，建议保持开启",
+    "type": "bool",
+    "default": true
+  },
+  "merge_reply": {
+    "description": "引用回复参与合并",
+    "hint": "开启后「引用一张图/一句话再说点别的」也能进防抖：引用降级成文字说明，被引用的图片会抽出来跟正文一起交给模型。关闭则整条放行，容易被核心 follow-up 抢走单独回",
+    "type": "bool",
+    "default": true
+  },
   "image_debounce_ms": {
     "description": "图片缓冲窗口（毫秒）",
     "hint": "消息里带图时多等这么久再交给模型，留给用户把配的文字打出来。设 0 = 不等，但容易出现「图先回一次、字再回一次」",
